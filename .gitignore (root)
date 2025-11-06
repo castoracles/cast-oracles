@@ -1,0 +1,9 @@
+# node
+node_modules
+npm-debug.log
+yarn.lock
+pnpm-lock.yaml
+
+# env
+.env
+gateway/.env
