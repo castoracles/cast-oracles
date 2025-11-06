@@ -1,0 +1,192 @@
+# 🔧 Developer API (x402 + s402)
+
+**Base URL (testnet):**  
+`https://api.yourdomain.com`  
+**Version:** `v0` (via header: `X-API-Version: 0`)
+
+## Concepts
+- **x402:** Endpoints first reply `402 Payment Required` with an **invoice**. After on-chain payment is detected, the same request returns the **data + s402 attestation + signature**.
+- **s402:** The oracle signs a canonical attestation (digest). Smart contracts verify with `ecrecover` (EIP-191 now; EIP-712 later).
+
+---
+
+## Auth & Headers
+Send these on every request:
+```
+X-API-Version: 0
+X-Client-Id: <your-app-name-or-wallet>
+Content-Type: application/json
+```
+
+---
+
+## Endpoints
+
+### 1) GET `/v0/sports/finalScore`
+**Query params**
+- `league` (string, e.g. `NBA`)
+- `gameId` (string, e.g. `LAL-BOS-2025-01-01`)
+- `invoiceId` (optional; include after you pay the invoice)
+- `amountWei` (optional; echo the quoted price)
+
+**Flow**
+1) Call without `invoiceId` → server returns **402** with invoice JSON  
+2) Pay `PaymentHub.pay(invoiceId)` on BNB Testnet (send `amountWei`)  
+3) Call again with `invoiceId` (and `amountWei`) → returns data + s402
+
+**Example (curl)**
+```bash
+# 1) Ask for data → 402 invoice
+curl "https://api.yourdomain.com/v0/sports/finalScore?league=NBA&gameId=LAL-BOS-2025-01-01"   -H "X-API-Version: 0" -H "X-Client-Id: demo"
+
+# 2) Pay the invoice on BNB Testnet
+# 3) Call again with the same invoiceId
+curl "https://api.yourdomain.com/v0/sports/finalScore?league=NBA&gameId=LAL-BOS-2025-01-01&invoiceId=0xabc123&amountWei=100000000000000"   -H "X-API-Version: 0" -H "X-Client-Id: demo"
+```
+
+**402 Response (invoice)**
+```json
+{
+  "invoice": {
+    "chain": "BSC Testnet",
+    "paymentHub": "0x...",
+    "method": "pay(bytes32)",
+    "invoiceId": "0x...",
+    "amountWei": "100000000000000",
+    "endpoint": "/v0/sports/finalScore",
+    "params": { "league": "NBA", "gameId": "LAL-BOS-2025-01-01" },
+    "client": "demo",
+    "nonce": "1730..."
+  },
+  "howToPay": "Call PaymentHub.pay(invoiceId) with value=amountWei, wait 1 block, then retry the same endpoint with ?invoiceId=..."
+}
+```
+
+**200 Response (after payment)**
+```json
+{
+  "data": {
+    "league": "NBA",
+    "gameId": "LAL-BOS-2025-01-01",
+    "winner": "LAL",
+    "score": "110-108",
+    "asOf": 1764547200
+  },
+  "attestation": {
+    "dataset": "sports:NBA:LAL-BOS-2025-01-01",
+    "metric": "final_score",
+    "value": "110-108",
+    "asOf": 1764547200,
+    "marketId": "0x0000000000000000000000000000000000000000"
+  },
+  "digest": "0x...",
+  "signature": "0x…",
+  "signer": "0xOracleSignerAddress"
+}
+```
+
+---
+
+### 2) GET `/v0/crypto/price`
+**Query params:** `symbol` (e.g. `BTCUSDT`), `at` (unix), `invoiceId`, `amountWei`  
+**Returns:** median price snapshot + s402
+
+### 3) GET `/v0/weather/observation`
+**Query params:** `city` or `lat,lon`, `at`, `invoiceId`, `amountWei`  
+**Returns:** temp/precip snapshot + s402
+
+### 4) GET `/v0/news/count`
+**Query params:** `q`, `from`, `to`, `invoiceId`, `amountWei`  
+**Returns:** headline count/sentiment + s402
+
+---
+
+## Errors
+| Code | Meaning | Fix |
+|-----:|--------|-----|
+| 402  | Payment Required | Pay invoice on BSC Testnet using PaymentHub, then retry with `invoiceId` |
+| 400  | Bad Request | Missing params |
+| 401  | Invalid Receipt | Tx hash not found / wrong network / wrong amount |
+| 429  | Rate Limited | Slow down or pay higher tier |
+| 500  | Server Error | Try again; contact support |
+
+---
+
+## s402 Attestation & Signing
+
+### Canonical Attestation (v0)
+```ts
+type Attestation = {
+  dataset: string;      // e.g. "sports:NBA:LAL-BOS-2025-01-01"
+  metric:  string;      // e.g. "final_score"
+  value:   string;      // e.g. "110-108"
+  asOf:    number;      // unix seconds
+  marketId:string;      // destination market (0x0 if generic)
+}
+```
+
+### Digest (server)
+```ts
+import { AbiCoder, keccak256 } from "ethers";
+
+const enc = AbiCoder.defaultAbiCoder().encode(
+  ["string","string","string","uint256","address"],
+  [a.dataset, a.metric, a.value, a.asOf, a.marketId]
+);
+const digest = keccak256(enc); // 32-byte hash
+```
+
+### Signature (EIP-191)
+```ts
+import { Wallet, getBytes } from "ethers";
+const wallet = new Wallet(process.env.ORACLE_PRIVKEY);
+const signature = await wallet.signMessage(getBytes(digest));
+```
+
+---
+
+## On-Chain Verification (Solidity)
+```solidity
+library S402 {
+    function verify(address signer, bytes32 digest, bytes memory sig) internal pure returns (bool) {
+        bytes32 ethSigned = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", digest));
+        (bytes32 r, bytes32 s, uint8 v) = split(sig);
+        return ecrecover(ethSigned, v, r, s) == signer;
+    }
+    function split(bytes memory sig) internal pure returns (bytes32 r, bytes32 s, uint8 v) {
+        require(sig.length == 65, "bad sig len");
+        assembly { r := mload(add(sig,32)) s := mload(add(sig,64)) v := byte(0, mload(add(sig,96))) }
+    }
+}
+```
+
+---
+
+## Client-Side Quick Start (Node/TS)
+```ts
+import fetch from "node-fetch";
+const base = "https://api.yourdomain.com/v0";
+
+async function getFinalScore(league, gameId) {
+  const q = `${base}/sports/finalScore?league=${league}&gameId=${gameId}`;
+  const r1 = await fetch(q, { headers: { "X-API-Version":"0", "X-Client-Id":"demo" }});
+  if (r1.status === 402) {
+    const { invoice } = await r1.json();
+    // 1) Pay invoice on BSC Testnet (PaymentHub.pay(invoiceId) with value=amountWei)
+    // 2) Retry with ?invoiceId=<same>&amountWei=<same>
+    const r2 = await fetch(q + `&invoiceId=${invoice.invoiceId}&amountWei=${invoice.amountWei}`, { headers: { "X-API-Version":"0", "X-Client-Id":"demo" }});
+    return await r2.json();
+  }
+  return await r1.json();
+}
+```
+
+---
+
+## Environment (Server)
+```
+ORACLE_PRIVKEY=0x...
+RPC_URL=https://data-seed-prebsc-1-s1.binance.org:8545/
+PAYMENT_HUB=0xYourPaymentHubAddress
+DEFAULT_PRICE_WEI=100000000000000
+```
