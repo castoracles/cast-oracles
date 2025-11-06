@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.30;
+
+contract PaymentHub {
+    address public owner;
+    address public treasury;
+    mapping(bytes32 => bool) public isPaid;
+
+    event Paid(bytes32 indexed invoiceId, address indexed payer, uint256 amount);
+    event TreasuryChanged(address indexed oldTreasury, address indexed newTreasury);
+    event OwnershipTransferred(address indexed oldOwner, address indexed newOwner);
+
+    modifier onlyOwner() { require(msg.sender == owner, "Only owner"); _; }
+
+    constructor(address _treasury) {
+        owner = msg.sender;
+        treasury = _treasury;
+        emit OwnershipTransferred(address(0), msg.sender);
+        emit TreasuryChanged(address(0), _treasury);
+    }
+
+    function setTreasury(address _treasury) external onlyOwner {
+        require(_treasury != address(0), "zero addr");
+        emit TreasuryChanged(treasury, _treasury);
+        treasury = _treasury;
+    }
+
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "zero addr");
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+    }
+
+    function pay(bytes32 invoiceId) external payable {
+        require(!isPaid[invoiceId], "already paid");
+        isPaid[invoiceId] = true;
+        emit Paid(invoiceId, msg.sender, msg.value);
+        (bool ok, ) = payable(treasury).call{value: msg.value}("");
+        require(ok, "forward failed");
+    }
+}
