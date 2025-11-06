@@ -1,0 +1,131 @@
+# Cast Oracles – Smart Contract Repository
+
+This repository contains the Solidity smart contracts powering the Cast Oracles ecosystem, including our oracle layer, x402 micropayment protocol, s402 signed data verification, and decentralized prediction markets.
+
+---
+
+## ✅ Contract Deployment (Testnet)
+
+**Network:** BNB Smart Chain Testnet (Chain ID 97)  
+**Contract Name:** CastOracles  
+**Status:** ✅ Deployed & Verified  
+**Deployer:** 0x9bf…  
+**Contract Address:**  0x9bF821A1f2Ba2DfdB9afEd5D2283F1B1B579a2cf
+
+
+
+
+
+**BscScan (Verified Source):**  
+https://testnet.bscscan.com/address/0x79e96631CD499159C4524d6264a42cafDf2aDab9#code---
+
+## ✅ Contract Overview
+
+The current Cast Oracles contract is the first foundation in our ecosystem. It includes:
+
+### 📌 **Core Features**
+- Stores project metadata (name, network label, status message)
+- Allows on-chain updates by the owner only
+- Emits events for transparency
+- Fully verified on BscScan
+- Used to test and validate our deployment pipeline
+
+### ✅ Functions
+- `setMessage(string newMessage)` — update on-chain broadcast message  
+- `setLabels(string projectName, string networkLabel)` — update project identifiers  
+- `owner()` — view contract owner  
+- `projectName()` — public getter  
+- `networkLabel()` — public getter  
+- `message()` — public getter  
+
+These will expand into dynamic Oracle + Prediction Market logic in upcoming versions.
+
+---
+
+## ✅ Upcoming Smart Contract Modules
+
+The contract in this repo is **Phase 1**. The following modules are coming next:
+
+### 🔹 **1. Oracle Feed Engine**
+- On-chain read/write model for weather, crypto, sports, and news data  
+- Off-chain oracle nodes pushing signed data  
+- x402 billing for API users  
+- s402 signature verification  
+- Transparent data audit logs  
+
+### 🔹 **2. x402 Micropayment Protocol**
+- HTTP 402 → on-chain payment layer  
+- Pay-per-query (no subscriptions, no API keys)  
+- Developer-friendly JSON endpoints  
+- Autonomous agent billing  
+
+### 🔹 **3. s402 Data Verification Protocol**
+- Cryptographic signatures for oracle data  
+- Trustless validation on-chain  
+- Compatible with dApps, bots, AI agents, and third-party developers  
+
+### 🔹 **4. Prediction Market Engine**
+- User-created markets (crypto, sports, weather, global events)  
+- Liquidity scoring system  
+- Creator rewards in CAST token  
+- Fully decentralized market creation  
+- Automated settlement logic  
+
+---
+
+## ✅ Roadmap
+
+### **Phase 1 – ✅ Done**
+- Basic contract architecture  
+- First BNB Testnet deployment  
+- BscScan contract verification  
+- GitHub source control integration  
+
+### **Phase 2 – In Progress**
+- Oracle data templates  
+- x402 payment gateway backend  
+- s402 signature verification design  
+- Prediction market contract draft  
+
+### **Phase 3 – Coming Soon**
+- Full Oracle node deployment  
+- Prediction market UI  
+- Cast Oracles developer console  
+- Multi-chain expansion  
+- Mainnet readiness  
+
+---
+
+## ✅ Developer Notes
+
+### 📦 Compile
+This contract is compiled using:
+
+- **Solidity Version:** `0.8.30`  
+- **Remix IDE**  
+- **No optimization**
+
+### ✅ Deployment
+Deployment was performed using:
+- Remix → Injected Provider (MetaMask)  
+- BNB Smart Chain Testnet RPC  
+- Verified via BscScan interface  
+
+---
+
+## ✅ Contributions
+
+This repository will expand as new features are developed.  
+Community developers and builders are welcome to test, audit, fork, and propose improvements.
+
+If you'd like to contribute, open an Issue or Pull Request.
+
+---
+
+## ✅ License
+MIT License — free to modify, use, and distribute.
+
+---
+
+### Cast Oracles  
+**If you can think it, you can create it.**
