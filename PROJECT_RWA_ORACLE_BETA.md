@@ -1,4 +1,4 @@
-# 1) create the file
+
 cat > PROJECT_RWA_ORACLE_BETA.md << 'EOF'
 # Project: RWA Oracle + AI Agent (Public Beta)
 
@@ -80,8 +80,3 @@ Not included (v0):
 - On-chain anchoring (hash commits)
 - Multi-reporter validation / threshold sigs
 EOF
-
-# 2) commit it
-git add PROJECT_RWA_ORACLE_BETA.md
-git commit -m "Add RWA Oracle Beta project spec"
-git push
